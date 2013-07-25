@@ -3,63 +3,28 @@
 <head>
   <title>Pong!</title> 
   <meta http-equiv="Content-Type" content="text/html; charset=utf-8"/> 
+
+  <script type="text/javascript" src="./libs/qrcodejs/qrcode.js"></script>
+
+  <script type="text/javascript" src="./libs/jquery/jquery.min.js" ></script>
+  <script type="text/javascript" src="./libs/jqueryui/jquery-ui.min.js" ></script>
+  <link rel="stylesheet" href="http://ajax.googleapis.com/ajax/libs/jqueryui/1.10.3/themes/trontastic/jquery-ui.css" type="text/css" /> 
+
   <link href="./pong.css" media="screen, print" rel="stylesheet" type="text/css" /> 
+
+  <script src="/socket.io/socket.io.js"></script>
+  <script>
+    var socket = io.connect('http://daniel123.fwd.wf/agent');
+  </script>
+
+  <style>
+      .ui-dialog {
+          font-size: 14px;
+      }
+  </style>
 </head> 
  
 <body> 
-
-  <div id="sidebar">
-
-    <h2>This is Pong!</h2>
-
-    <ul class='parts'>
-      <li><a href='./' class='selected'>Full Game</a></li>
-      <li><a href='./part1'><i>game runner</i> - Part 1</a></li>
-      <li><a href='./part2'><i>bouncing ball</i> - Part 2</a></li>
-      <li><a href='./part3'><i>game loop</i> - Part 3</a></li>
-      <li><a href='./part4'><i>collision detection</i> - Part 4</a></li>
-      <li><a href='./part5'><i>computer AI</i> - Part 5</a></li>
-    </ul>
-
-    <div class='description'>
-      <p>
-        This is a javascript version of Pong.
-      </p>
-      <p>
-        Press <b>1</b> for a single player game.<br>
-        Press <b>2</b> for a double player game.<br>
-        Press <b>0</b> to watch the computer play itself.
-      </p>
-      <p>
-        Player 1 moves using the <b>Q</b> and <b>A</b> keys.<br>
-        Player 2 moves using the <b>P</b> and <b>L</b> keys.
-      </p>
-      <p>
-        <b>Esc</b> can be used to abandon a game.
-      </p>
-    </div>
-
-    <div class='settings'>
-      <label for='sound'>sound: </label>
-      <input type='checkbox' id='sound'>
-    </div>
-
-    <div class='settings'>
-      <label for='stats'>stats: </label>
-      <input type='checkbox' id='stats' checked>
-    </div>
-
-    <div class='settings'>
-      <label for='footprints'>footprints: </label>
-      <input type='checkbox' id='footprints'>
-    </div>
-
-    <div class='settings'>
-      <label for='predictions'>predictions: </label>
-      <input type='checkbox' id='predictions'>
-    </div>
-
-  </div>
 
   <canvas id="game">
     <div id="unsupported">
@@ -67,31 +32,67 @@
     </div>
   </canvas>
 
-  <script src="game.js" type="text/javascript"></script> 
-  <script src="pong.js" type="text/javascript"></script>
+  <script src="./game.js" type="text/javascript"></script> 
+  <script src="./pong.js" type="text/javascript"></script>
   <script type="text/javascript">
   Game.ready(function() {
 
-    var size        = document.getElementById('size');
-    var sound       = document.getElementById('sound');
-    var stats       = document.getElementById('stats');
-    var footprints  = document.getElementById('footprints');
-    var predictions = document.getElementById('predictions');
-
     var pong = Game.start('game', Pong, {
-      sound:       sound.checked,
-      stats:       stats.checked,
-      footprints:  footprints.checked,
-      predictions: predictions.checked
+      sound:       true,
+      stats:       false,
+      footprints:  false,
+      predictions: false
     });
-
-    Game.addEvent(sound,       'change', function() { pong.enableSound(sound.checked);           });
-    Game.addEvent(stats,       'change', function() { pong.showStats(stats.checked);             });
-    Game.addEvent(footprints,  'change', function() { pong.showFootprints(footprints.checked);   });
-    Game.addEvent(predictions, 'change', function() { pong.showPredictions(predictions.checked); });
 
   });
   </script>
 
+  <div id="dialog-message" title="Multiplayer Pong">
+    <p>
+      <div id="qr-code">Loading QR Code...</div>
+      <span id="controller_url" style="font-weight: bold;"></span><br />
+      <div style="text-align: center; margin-top: 23px; font-size: 17px;">Connected players<br /><span id="connected_players" style="font-size: 23px; font-weight: bold;">0</span></div>
+    </p>
+  </div>
+
+  <script type="text/javascript">
+    (function () {
+        $(window).ready(function () {
+          $( "#dialog-message" ).dialog({
+            modal: true,
+            buttons: {
+              "Against AI": function() {
+                $( this ).dialog( "close" );
+              },
+              "Against Each Other": function() {
+                $( this ).dialog( "close" );
+              }
+            }
+          });
+
+          socket.emit("new_field");
+
+          socket.on("field_registered", function (field_id) {
+              var controller_url = "https://daniel123.fwd.wf/remote_control/?field_id=" + field_id;
+              var $qrcode = $("#qr-code");
+              var qr_size = 188;
+              $qrcode.html("").css({"padding": "10px", "width": qr_size + "px", "background-color": "white", "margin": "15px auto"});
+              new QRCode($qrcode.get(0), {text: controller_url, width: qr_size, height: qr_size});
+              $("#controller_url").html(controller_url);
+          });
+
+          socket.on("controller_connected", function () {
+                  console.log(1);
+                  
+              $("#connected_players").html(parseInt($("#connected_players").html(), 10) + 1);
+          });
+
+          socket.on("controller_disconnected", function () {
+                  console.log(2);
+              $("#connected_players").html(parseInt($("#connected_players").html(), 10) - 1);
+          });
+        });
+    })();
+  </script>
 </body> 
 </html>
