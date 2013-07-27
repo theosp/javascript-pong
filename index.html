@@ -12,9 +12,11 @@
 
   <link href="./pong.css" media="screen, print" rel="stylesheet" type="text/css" /> 
 
+  <script type="text/javascript" src="/config.js" ></script>
+
   <script src="/socket.io/socket.io.js"></script>
   <script>
-    var socket = io.connect('http://daniel123.fwd.wf/agent');
+    var socket = io.connect('http://' + CONFIG.domain + '/agent');
   </script>
 
   <style>
@@ -37,7 +39,7 @@
   <script type="text/javascript">
   Game.ready(function() {
 
-    var pong = Game.start('game', Pong, {
+    pong = Game.start('game', Pong, {
       sound:       true,
       stats:       false,
       footprints:  false,
@@ -62,9 +64,15 @@
             modal: true,
             buttons: {
               "Against AI": function() {
+                socket.emit("start", 1);
+                pong.start(1);
+
                 $( this ).dialog( "close" );
               },
               "Against Each Other": function() {
+                socket.emit("start", 2);
+                pong.start(2);
+
                 $( this ).dialog( "close" );
               }
             }
@@ -73,7 +81,7 @@
           socket.emit("new_field");
 
           socket.on("field_registered", function (field_id) {
-              var controller_url = "https://daniel123.fwd.wf/remote_control/?field_id=" + field_id;
+              var controller_url = "http://" + CONFIG.domain + "/remote_control/?field_id=" + field_id;
               var $qrcode = $("#qr-code");
               var qr_size = 188;
               $qrcode.html("").css({"padding": "10px", "width": qr_size + "px", "background-color": "white", "margin": "15px auto"});
@@ -82,14 +90,26 @@
           });
 
           socket.on("controller_connected", function () {
-                  console.log(1);
-                  
               $("#connected_players").html(parseInt($("#connected_players").html(), 10) + 1);
           });
 
           socket.on("controller_disconnected", function () {
-                  console.log(2);
               $("#connected_players").html(parseInt($("#connected_players").html(), 10) - 1);
+          });
+
+          socket.on("position", function (side, position) {
+              paddle = side === 0 ? pong.leftPaddle : pong.rightPaddle;
+
+              if (position < 0.47) {
+                paddle.stopMovingDown();
+                paddle.moveUp();
+              } else if (position < 0.53) {
+                paddle.stopMovingUp();
+                paddle.stopMovingDown();
+              } else {
+                paddle.stopMovingUp();
+                paddle.moveDown();
+              }
           });
         });
     })();
