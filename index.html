@@ -97,13 +97,13 @@
               $("#connected_players").html(parseInt($("#connected_players").html(), 10) - 1);
           });
 
-          socket.on("position", function (side, position) {
+          socket.on("direction", function (side, direction) {
               paddle = side === 0 ? pong.leftPaddle : pong.rightPaddle;
 
-              if (position < 0.47) {
+              if (direction === 1) {
                 paddle.stopMovingDown();
                 paddle.moveUp();
-              } else if (position < 0.53) {
+              } else if (direction === 0) {
                 paddle.stopMovingUp();
                 paddle.stopMovingDown();
               } else {
